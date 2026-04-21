@@ -1,0 +1,11 @@
+[tool.basedpyright]
+reportAttributeAccessIssue = false
+reportUnannotatedClassAttribute = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
+reportUnusedCallResult = false
+reportDeprecated = false
+reportMissingParameterType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportAny = false
