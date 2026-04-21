@@ -56,10 +56,10 @@ class View(QMainWindow):
     def set_main_month(self, value: int) -> None:
         self._ui.monat.setValue(value)
 
-    def get_main_year(self) -> bool:
+    def get_main_year_enabled(self) -> bool:
         return self._ui.jahr.isChecked()
 
-    def set_main_year(self, value: bool) -> None:
+    def set_main_year_enabled(self, value: bool) -> None:
         self._ui.jahr.setChecked(value)
 
     def set_main_output(self, value: str) -> None:

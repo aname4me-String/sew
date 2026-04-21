@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from model import Model, ModelResult
+from view import View
 
 
 class Controller:
-    def __init__(self, model: Model, view) -> None:
+    def __init__(self, model: Model, view: View) -> None:
         self._model = model
         self._view = view
 
@@ -47,10 +48,10 @@ class Controller:
         month = self._view.get_main_month()
 
         self._view.set_status(
-            f"Abfrage: Verkehrsmittel={transport}, Monat={month}, Jahr={self._view.get_main_year()}"
+            f"Abfrage: Verkehrsmittel={transport}, Monat={month}, Jahr={self._view.get_main_year_enabled()}"
         )
 
-        if self._view.get_main_year():
+        if self._view.get_main_year_enabled():
             result = self._model.get(transport)
             if result.ok and isinstance(result.data, dict):
                 self._view.set_main_output(self._format_yearly(result.data, transport))
@@ -93,7 +94,7 @@ class Controller:
     def reset_main(self) -> None:
         self._view.set_main_transport("bus")
         self._view.set_main_month(1)
-        self._view.set_main_year(False)
+        self._view.set_main_year_enabled(False)
         self._view.clear_main_output()
         self._view.set_status("Mitarbeiteransicht zurückgesetzt", 2000)
 
