@@ -79,7 +79,7 @@ class VerkehrController:
             200,
         )
 
-    def get_data(self, verkehrsmittel: str):
+    def get_data(self, verkehrsmittel: str) -> Tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
         if not ok:
             return error_response
@@ -97,7 +97,7 @@ class VerkehrController:
         except KeyError:
             return self._error("Monat nicht gefunden", 404)
 
-    def post_data(self, verkehrsmittel: str):
+    def post_data(self, verkehrsmittel: str) -> Tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
         if not ok:
             return error_response
@@ -114,7 +114,7 @@ class VerkehrController:
         except FileExistsError:
             return self._error("Monat bereits vorhanden", 409)
 
-    def put_data(self, verkehrsmittel: str):
+    def put_data(self, verkehrsmittel: str) -> Tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
         if not ok:
             return error_response
@@ -129,7 +129,7 @@ class VerkehrController:
         except ValueError:
             return self._error("Ungültige Eingabe", 400)
 
-    def patch_data(self, verkehrsmittel: str):
+    def patch_data(self, verkehrsmittel: str) -> Tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
         if not ok:
             return error_response
@@ -146,7 +146,7 @@ class VerkehrController:
         except KeyError:
             return self._error("Monat nicht gefunden", 404)
 
-    def delete_data(self, verkehrsmittel: str):
+    def delete_data(self, verkehrsmittel: str) -> Tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
         if not ok:
             return error_response
