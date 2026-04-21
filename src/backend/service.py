@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-class VerkehrService:
+
+class Service:
     def __init__(self) -> None:
         self._data: dict[str, dict[int, int]] = {"bus": {}, "tram": {}, "ubahn": {}}
 
