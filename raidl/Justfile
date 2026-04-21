@@ -3,7 +3,7 @@ alias f := frontend
 
 [working-directory('src/backend')]
 backend:
-    uvicorn main:app --host 127.0.0.1 --port 5000 && rm -r __pycache__
+    python main.py && rm -r __pycache__
 
 [working-directory('src/frontend')]
 frontend:

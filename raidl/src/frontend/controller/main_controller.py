@@ -1,118 +1,119 @@
-from model.api_client import ApiClient
+from __future__ import annotations
+
+from model.api_client import ApiClient, ApiResult
 
 
 class MainController:
-    def __init__(self, view):
-        self.view = view
-        self.api = ApiClient()
+    def __init__(self, view) -> None:
+        self._view = view
+        self._api = ApiClient()
 
-        self.view.btn_get.clicked.connect(self.get_data)
-        self.view.btn_reset.clicked.connect(self.reset_mitarbeiter)
-        self.view.btn_exit.clicked.connect(self.view.close)
+        self._view.bind_main_start(self.get_data)
+        self._view.bind_main_reset(self.reset_mitarbeiter)
+        self._view.bind_main_exit(self._view.close_application)
 
-        self.view.btn_admin_start.clicked.connect(self.execute_admin_action)
-        self.view.btn_admin_reset.clicked.connect(self.reset_admin)
-        self.view.btn_admin_exit.clicked.connect(self.view.close)
+        self._view.bind_admin_start(self.execute_admin_action)
+        self._view.bind_admin_reset(self.reset_admin)
+        self._view.bind_admin_exit(self._view.close_application)
 
-    def format_yearly_data(self, data, transport_name):
-        output = f"{transport_name.upper()}\n\n"
+        self.reset_mitarbeiter()
+        self.reset_admin()
+
+    def _format_yearly_data(self, data: dict[str, int], transport_name: str) -> str:
+        output = [transport_name.upper(), ""]
         for month in range(1, 13):
-            value = data.get(str(month), "-")
-            output += f"Monat {month:02d}: {value}\n"
-        return output
+            output.append(f"Monat {month:02d}: {data.get(str(month), '-')}")
+        return "\n".join(output)
 
-    def refresh_all_admin_yearly(self):
-        transports = ["ubahn", "tram", "bus"]
-        outputs = [
-            self.view.admin_text_1,
-            self.view.admin_text_2,
-            self.view.admin_text_3,
-        ]
-
-        for transport, output_widget in zip(transports, outputs):
-            r = self.api.get(transport)
-            if r.ok:
-                data = r.json()
-                output_widget.setText(self.format_yearly_data(data, transport))
-            else:
-                output_widget.setText(f"{transport.upper()}\n\nFehler: {r.status_code}")
-
-    def show_response(self, text_widget, r):
-        if r.ok:
-            text_widget.setText(str(r.json()) if r.content else "OK")
-            self.view.status.showMessage("Erfolgreich", 3000)
-        else:
-            text_widget.setText(str(r.json()))
-            self.view.status.showMessage("Fehler", 3000)
-
-    def get_data(self):
-        verkehr = self.view.transport.currentText()
-
-        if self.view.year_view.isChecked():
-            r = self.api.get(verkehr)
-            if not r.ok:
-                self.show_response(self.view.output, r)
-                return
-
-            data = r.json()
-            output = "Jahresübersicht\n\n"
-
-            for month in range(1, 13):
-                value = data.get(str(month), "-")
-                output += f"Monat {month:02d}: {value}\n"
-
-            self.view.output.setText(output)
-            self.view.status.showMessage("Jahresübersicht geladen", 3000)
-
-            self.refresh_all_admin_yearly()
+    def _show_result_on_main_output(self, result: ApiResult) -> None:
+        if result.ok:
+            self._view.set_main_output(str(result.data) if result.data is not None else "OK")
+            self._view.show_status_message("Erfolgreich", 3000)
             return
 
-        r = self.api.get(verkehr, self.view.month.value())
-        self.show_response(self.view.output, r)
+        if result.data is not None:
+            self._view.set_main_output(str(result.data))
+        elif result.error is not None:
+            self._view.set_main_output(result.error)
+        else:
+            self._view.set_main_output("Fehler")
+        self._view.show_status_message(result.error or "Fehler", 4000)
 
-        self.refresh_all_admin_yearly()
+    def _refresh_all_admin_yearly(self) -> None:
+        transports = ["bus", "tram", "ubahn"]
+        for index, transport in enumerate(transports):
+            result = self._api.get(transport)
+            if result.ok and isinstance(result.data, dict):
+                self._view.set_admin_output(index, self._format_yearly_data(result.data, transport))
+            else:
+                self._view.set_admin_output(
+                    index,
+                    f"{transport.upper()}\n\nFehler: {result.error or result.status_code}",
+                )
 
-    def execute_admin_action(self):
-        action = self.view.admin_action.currentText().lower()
-        selected_transport = self.view.admin_transport.currentText()
-        month = self.view.admin_month.value()
-        value = self.view.admin_value.value()
+    def get_data(self) -> None:
+        transport = self._view.get_main_transport()
+        month = self._view.get_main_month()
+
+        if month < 1 or month > 12:
+            self._view.show_status_message("Ungültiger Monat", 4000)
+            return
+
+        self._view.show_status_message(
+            f"Abfrage: Verkehrsmittel={transport}, Monat={month}, Jahr={self._view.get_main_yearly_enabled()}"
+        )
+
+        if self._view.get_main_yearly_enabled():
+            result = self._api.get(transport)
+            if result.ok and isinstance(result.data, dict):
+                self._view.set_main_output(self._format_yearly_data(result.data, transport))
+                self._view.show_status_message("Jahresübersicht geladen", 3000)
+            else:
+                self._show_result_on_main_output(result)
+            self._refresh_all_admin_yearly()
+            return
+
+        result = self._api.get(transport, month)
+        self._show_result_on_main_output(result)
+        self._refresh_all_admin_yearly()
+
+    def execute_admin_action(self) -> None:
+        action = self._view.get_admin_action()
+        selected_transport = self._view.get_admin_transport()
+        month = self._view.get_admin_month()
+        value = self._view.get_admin_value()
 
         if action == "get":
-            self.refresh_all_admin_yearly()
-        elif action == "post":
-            r = self.api.post(selected_transport, month, value)
-            if not r.ok and r.status_code == 409:
-                self.api.delete(selected_transport, month)
-                r = self.api.post(selected_transport, month, value)
-            self.show_response(self.view.output, r)
-            self.refresh_all_admin_yearly()
-        elif action == "put":
-            r = self.api.put(selected_transport, month, value)
-            self.show_response(self.view.output, r)
-            self.refresh_all_admin_yearly()
-        elif action == "patch":
-            r = self.api.patch(selected_transport, month, value)
-            self.show_response(self.view.output, r)
-            self.refresh_all_admin_yearly()
-        elif action == "delete":
-            r = self.api.delete(selected_transport, month)
-            self.show_response(self.view.output, r)
-            self.refresh_all_admin_yearly()
+            self._refresh_all_admin_yearly()
+            self._view.show_status_message("Admin Jahressicht geladen", 3000)
+            return
 
-    def reset_mitarbeiter(self):
-        self.view.transport.setCurrentIndex(0)
-        self.view.month.setValue(1)
-        self.view.year_view.setChecked(False)
-        self.view.output.clear()
-        self.view.status.showMessage("Zurückgesetzt", 2000)
+        action_map = {
+            "post": lambda: self._api.post(selected_transport, month, value),
+            "put": lambda: self._api.put(selected_transport, month, value),
+            "patch": lambda: self._api.patch(selected_transport, month, value),
+            "delete": lambda: self._api.delete(selected_transport, month),
+        }
 
-    def reset_admin(self):
-        self.view.admin_transport.setCurrentIndex(0)
-        self.view.admin_month.setValue(1)
-        self.view.admin_action.setCurrentIndex(0)
-        self.view.admin_value.setValue(0)
-        self.view.admin_text_1.clear()
-        self.view.admin_text_2.clear()
-        self.view.admin_text_3.clear()
-        self.view.status.showMessage("Admin zurückgesetzt", 2000)
+        if action not in action_map:
+            self._view.show_status_message("Ungültige Aktion", 4000)
+            return
+
+        result = action_map[action]()
+        self._show_result_on_main_output(result)
+        self._refresh_all_admin_yearly()
+
+    def reset_mitarbeiter(self) -> None:
+        self._view.set_main_transport("bus")
+        self._view.set_main_month(1)
+        self._view.set_main_yearly_enabled(False)
+        self._view.clear_main_output()
+        self._view.show_status_message("Mitarbeiteransicht zurückgesetzt", 2000)
+
+    def reset_admin(self) -> None:
+        self._view.set_admin_transport("bus")
+        self._view.set_admin_month(1)
+        self._view.set_admin_action("put")
+        self._view.set_admin_value(0)
+        self._view.clear_admin_outputs()
+        self._view.show_status_message("Adminansicht zurückgesetzt", 2000)
