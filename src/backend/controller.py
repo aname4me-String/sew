@@ -22,30 +22,30 @@ class Controller:
         self.blueprint.delete("/verkehr/<verkehrsmittel>")(self.delete_data)
 
     @staticmethod
-    def _error(message: str, status_code: int) -> tuple[Any, int]:
+    def _error_response(message: str, status_code: int) -> tuple[Any, int]:
         return jsonify({"error": message}), status_code
 
     def _extract_set_body(self) -> tuple[tuple[int, int] | None, tuple[Any, int] | None]:
         body = request.get_json(silent=True)
         if not isinstance(body, dict) or "monat" not in body or "anzahl" not in body:
-            return None, self._error("Ungültige Eingabe", 400)
+            return None, self._error_response("Ungültige Eingabe", 400)
         try:
             return (int(body["monat"]), int(body["anzahl"])), None
         except (TypeError, ValueError):
-            return None, self._error("Ungültige Eingabe", 400)
+            return None, self._error_response("Ungültige Eingabe", 400)
 
     def _extract_delete_body(self) -> tuple[int | None, tuple[Any, int] | None]:
         body = request.get_json(silent=True)
         if not isinstance(body, dict) or "monat" not in body:
-            return None, self._error("Ungültige Eingabe", 400)
+            return None, self._error_response("Ungültige Eingabe", 400)
         try:
             return int(body["monat"]), None
         except (TypeError, ValueError):
-            return None, self._error("Ungültige Eingabe", 400)
+            return None, self._error_response("Ungültige Eingabe", 400)
 
     def _validate_transport(self, verkehrsmittel: str) -> tuple[bool, tuple[Any, int] | None]:
         if not self._service.has_transport(verkehrsmittel):
-            return False, self._error("Verkehrsmittel nicht gefunden", 404)
+            return False, self._error_response("Verkehrsmittel nicht gefunden", 404)
         return True, None
 
     def get_overview(self) -> tuple[Any, int]:
@@ -76,9 +76,9 @@ class Controller:
         try:
             return jsonify(self._service.get_monat(verkehrsmittel, int(monat))), 200
         except ValueError:
-            return self._error("Ungültiger Monat", 400)
+            return self._error_response("Ungültiger Monat", 400)
         except KeyError:
-            return self._error("Monat nicht gefunden", 404)
+            return self._error_response("Monat nicht gefunden", 404)
 
     def post_data(self, verkehrsmittel: str) -> tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
@@ -93,9 +93,9 @@ class Controller:
         try:
             return jsonify(self._service.create(verkehrsmittel, monat, anzahl)), 201
         except ValueError:
-            return self._error("Ungültige Eingabe", 400)
+            return self._error_response("Ungültige Eingabe", 400)
         except FileExistsError:
-            return self._error("Monat bereits vorhanden", 409)
+            return self._error_response("Monat bereits vorhanden", 409)
 
     def put_data(self, verkehrsmittel: str) -> tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
@@ -110,7 +110,7 @@ class Controller:
         try:
             return jsonify(self._service.set(verkehrsmittel, monat, anzahl)), 200
         except ValueError:
-            return self._error("Ungültige Eingabe", 400)
+            return self._error_response("Ungültige Eingabe", 400)
 
     def patch_data(self, verkehrsmittel: str) -> tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
@@ -125,9 +125,9 @@ class Controller:
         try:
             return jsonify(self._service.increase(verkehrsmittel, monat, anzahl)), 200
         except ValueError:
-            return self._error("Ungültige Eingabe", 400)
+            return self._error_response("Ungültige Eingabe", 400)
         except KeyError:
-            return self._error("Monat nicht gefunden", 404)
+            return self._error_response("Monat nicht gefunden", 404)
 
     def delete_data(self, verkehrsmittel: str) -> tuple[Any, int]:
         ok, error_response = self._validate_transport(verkehrsmittel)
@@ -142,6 +142,6 @@ class Controller:
             self._service.delete(verkehrsmittel, monat)
             return "", 204
         except ValueError:
-            return self._error("Ungültige Eingabe", 400)
+            return self._error_response("Ungültige Eingabe", 400)
         except KeyError:
-            return self._error("Monat nicht gefunden", 404)
+            return self._error_response("Monat nicht gefunden", 404)
